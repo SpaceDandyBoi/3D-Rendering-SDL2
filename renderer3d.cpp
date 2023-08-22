@@ -68,7 +68,7 @@ void renderer3D::render() {
 
     //Auto Rotation
     rotation.xRotation += 1* DeltaTime;
-    rotation.yRotation += 1*DeltaTime;
+    //rotation.yRotation += 1*DeltaTime;
     rotation.zRotation += 1*DeltaTime;
 
     SDL_SetRenderDrawColor(renderer3D::renderer,255,255,255,SDL_ALPHA_OPAQUE);
@@ -105,30 +105,37 @@ void renderer3D::render() {
         edge2.y = triTranslated.points[2].y - triTranslated.points[0].y;
         edge2.z = triTranslated.points[2].z - triTranslated.points[0].z;
 
+        //croos product
         normal.x = edge1.y * edge2.z - edge1.z * edge2.y;
         normal.y = edge1.z * edge2.x - edge1.x * edge2.z;
         normal.z = edge1.x * edge2.y - edge1.y * edge2.x;
 
-        float l = sqrtf(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+        if (normal.x == 0.0f) normal.x = 0.0f;
+        if (normal.y == 0.0f) normal.y = 0.0f;
+        if (normal.z == 0.0f) normal.z = 0.0f;
+
+        float l = sqrt(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
         normal.x /= l; normal.y /= l; normal.z /= l;
 
-        if (normal.x *(triTranslated.points[0].x - vCamera.x) +
+        //dot product
+        /*if (normal.x *(triTranslated.points[0].x - vCamera.x) +
             normal.y *(triTranslated.points[0].y - vCamera.y)+
-            normal.z *(triTranslated.points[0].z - vCamera.z) < 0.0f) //doesn't work
-        //if (normal.z < 0.0f)
+            normal.z *(triTranslated.points[0].z - vCamera.z) < 0.0f)*/ //doesn't work
+        if (normal.z < 0.0f)
         {
             //lighting
             vec3D lightDirection = {0.0f,0.0f,-1.0f};
             float le = sqrt(lightDirection.x*lightDirection.x + lightDirection.y*lightDirection.y + lightDirection.z*lightDirection.z);
             lightDirection.x /= le; lightDirection.y /= le; lightDirection.z /= le;
             float dp = normal.x * lightDirection.x + normal.y * lightDirection.y + normal.z * lightDirection.z;
+            //std::cout << dp << std::endl;
             Uint8 clr = ceil(fabsf((dp+1)/2) * 255);
 
             SDL_Vertex vertices[3]; //triangle points quordinates
             //projection
             for (int i = 0; i < 3; ++i) {
                 projection(triTranslated.points[i], prot.points[i]);
-                vertices[i].color = {clr, clr, clr,255};
+                vertices[i].color = {0, clr, clr,255};
                 vertices[i].position= {prot.points[i].x,prot.points[i].y};
             }
             //draw triangle
