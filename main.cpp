@@ -16,6 +16,7 @@ polygon polycreator(vec3D Apoint, vec3D Bpoint, vec3D Cpoint){
  */
 
 int main(int argc, char** argv) {
+
     cube = {{{vec3D(-1.0f,-1.0f,-1.0f),vec3D(-1.0f,1.0f,-1.0f),vec3D(1.0f,1.0f,-1.0f)},
              {vec3D(-1.0f,-1.0f,-1.0f),vec3D(1.0f,1.0f,-1.0f),vec3D(1.0f,-1.0f,-1.0f)},
 

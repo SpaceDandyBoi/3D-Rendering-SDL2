@@ -15,6 +15,21 @@ renderer3D::renderer3D(mesh P_meshObject, SDL_Window* window, SDL_Renderer* p_re
     SDL_RenderGetLogicalSize(renderer, &WindowSizeX, &WindowSizeY);
     pos = vec2D(WindowSizeX/2,WindowSizeY/2);
     rotation = {0,0};
+
+    //projection
+    float fNear = 0.1f;
+    float fFar = 1000.0f;
+    float fFov = 90.0f;
+    float fAspectRatio = (float)WindowSizeY / (float)WindowSizeX;
+    float fFovRad = 1.0f / tanf(fFov * 0.5f / 180.0f * 3.14159f);
+
+    matProj.m[0][0] = fAspectRatio * fFovRad;
+    matProj.m[1][1] = fFovRad;
+    matProj.m[2][2] = fFar / (fFar - fNear);
+    matProj.m[3][2] = (-fFar * fNear) / (fFar - fNear);
+    matProj.m[2][3] = 1.0f;
+    matProj.m[3][3] = 0.0f;
+
 }
 
 
@@ -26,64 +41,110 @@ void renderer3D::render() {
     SDL_SetRenderDrawColor(renderer,0,0,0,SDL_ALPHA_OPAQUE);
     SDL_RenderClear(renderer);
 
+
+    mat4x4 matRotZ, matRotX, matRotY;
+    // Rotation X
+    matRotX.m[0][0] = 1;
+    matRotX.m[1][1] = cosf(rotation.xRotation);
+    matRotX.m[1][2] = sinf(rotation.xRotation);
+    matRotX.m[2][1] = -sinf(rotation.xRotation);
+    matRotX.m[2][2] = cosf(rotation.xRotation);
+    matRotX.m[3][3] = 1;
+    // Rotation Z
+    matRotZ.m[0][0] = cosf(rotation.zRotation);
+    matRotZ.m[0][1] = sinf(rotation.zRotation);
+    matRotZ.m[1][0] = -sinf(rotation.zRotation);
+    matRotZ.m[1][1] = cosf(rotation.zRotation);
+    matRotZ.m[2][2] = 1;
+    matRotZ.m[3][3] = 1;
+    // Rotation Y
+    matRotY.m[0][0] = cosf(rotation.yRotation);
+    matRotY.m[2][0] = sinf(rotation.yRotation);
+    matRotY.m[0][2] = -sinf(rotation.yRotation);
+    matRotY.m[2][2] = cosf(rotation.yRotation);
+    matRotY.m[1][1] = 1;
+    matRotY.m[3][3] = 1;
+
+
+
     //rotation.xRotation += 1* DeltaTime;
-    //rotation.yRotation += 1*DeltaTime;
+    //rotation.zRotation += 1*DeltaTime;
+
     SDL_SetRenderDrawColor(renderer3D::renderer,255,255,255,SDL_ALPHA_OPAQUE);
     for (auto& poly : meshObject.polygons) {
+        polygon triTranslated, triRotatedx, triRotatedxy, triRotated;
+        triangle prot;
 
-        //rotate lines
-        polygon triRotated;
+        //rotate points
         for (int i = 0; i < 3; ++i) {
-            triRotated.lines[i].start = rotateX(rotateY(rotateZ(poly.lines[i].start)));
-            triRotated.lines[i].end = rotateX(rotateY(rotateZ(poly.lines[i].end)));
+            MultiplyMatrixVector(poly.points[i],triRotatedx.points[i],matRotX);
+        }
+        for (int i = 0; i < 3; ++i) {
+            MultiplyMatrixVector(triRotatedx.points[i],triRotatedxy.points[i],matRotY);
+        }
+        for (int i = 0; i < 3; ++i) {
+            MultiplyMatrixVector(triRotatedxy.points[i],triRotated.points[i],matRotZ);
         }
 
-        //normals
-        vec3D normal;
-        normal.x = (triRotated.lines[0].end.y - triRotated.lines[0].start.y) * (triRotated.lines[2].start.z - triRotated.lines[2].end.z) -
-                (triRotated.lines[0].end.z - triRotated.lines[0].start.z) * (triRotated.lines[2].start.y - triRotated.lines[2].end.y);
-        normal.y = (triRotated.lines[0].end.z - triRotated.lines[0].start.z) * (triRotated.lines[2].start.x - triRotated.lines[2].end.x) -
-                (triRotated.lines[0].end.x - triRotated.lines[0].start.x) * (triRotated.lines[2].start.z - triRotated.lines[2].end.z);
-        normal.z = (triRotated.lines[0].end.x - triRotated.lines[0].start.x) * (triRotated.lines[2].start.y - triRotated.lines[2].end.y) -
-                (triRotated.lines[0].end.y - triRotated.lines[0].start.y) * (triRotated.lines[2].start.x - triRotated.lines[2].end.x);
+
+        // Offset into the screen
+        triTranslated = triRotated;
+        triTranslated.points[0].z = triRotated.points[0].z;
+        triTranslated.points[1].z = triRotated.points[1].z;
+        triTranslated.points[2].z = triRotated.points[2].z;
+
+
+        // Use Cross-Product to get surface normal
+        vec3D normal, edge1, edge2;
+        edge1.x = triTranslated.points[1].x - triTranslated.points[0].x;
+        edge1.y = triTranslated.points[1].y - triTranslated.points[0].y;
+        edge1.z = triTranslated.points[1].z - triTranslated.points[0].z;
+
+        edge2.x = triTranslated.points[2].x - triTranslated.points[0].x;
+        edge2.y = triTranslated.points[2].y - triTranslated.points[0].y;
+        edge2.z = triTranslated.points[2].z - triTranslated.points[0].z;
+
+        normal.x = edge1.y * edge2.z - edge1.z * edge2.y;
+        normal.y = edge1.z * edge2.x - edge1.x * edge2.z;
+        normal.z = edge1.x * edge2.y - edge1.y * edge2.x;
+        //std::cout<< normal.x*normal.x << std::endl;
 
         float l = sqrtf(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
         normal.x /= l; normal.y /= l; normal.z /= l;
-
-        if (abs( normal.x ) < EPS) normal.x = 0.0;
-        if (abs( normal.y ) < EPS) normal.y = 0.0;
-        if (abs( normal.z ) < EPS) normal.z = 0.0;
+        vCamera={0.0f,0.0f,-2.0f};
 
 
-        std::cout << normal.x *(triRotated.lines[0].start.x - vCamera.x) +
-                      normal.y *(triRotated.lines[0].start.y - vCamera.y)+
-                      normal.z *(triRotated.lines[0].start.z - vCamera.z) << std::endl;
-        /*if (normal.x *(triRotated.lines[0].start.x - vCamera.x) +
-            normal.y *(triRotated.lines[0].start.y - vCamera.y)+
-            normal.z *(triRotated.lines[0].start.z - vCamera.z) < 0.0f)*/ //doesn't work
+        /*if (normal.x *(triTranslated.points[0].x - vCamera.x) +
+            normal.y *(triTranslated.points[0].y - vCamera.y)+
+            normal.z *(triTranslated.points[0].z - vCamera.z) < 0.0f)*/ //doesn't work
         if (normal.z < 0.0f)
         {
             //lighting
             vec3D lightDirection = {0.0f,0.0f,-1.0f};
-            float le = sqrtf(lightDirection.x*lightDirection.x + lightDirection.y*lightDirection.y + lightDirection.z*lightDirection.z);
+            float le = sqrt(lightDirection.x*lightDirection.x + lightDirection.y*lightDirection.y + lightDirection.z*lightDirection.z);
             lightDirection.x /= le; lightDirection.y /= le; lightDirection.z /= le;
             float dp = normal.x * lightDirection.x + normal.y * lightDirection.y + normal.z * lightDirection.z;
-            Uint8 clr = ceil(fabsf(dp) * 255);
-            SDL_Vertex vertices[3];
-            sleep(0.1);
+            Uint8 clr = ceil(fabsf((dp+1)/2) * 255);
+
+            SDL_Vertex vertices[3]; //triangle points quordinates
             //projection
             for (int i = 0; i < 3; ++i) {
-                vec2D startLine = projection(triRotated.lines[i].start);
-                //vec2D endLine = projection(triRotated.lines[i].end);
+                projection(triTranslated.points[i], prot.points[i]);
                 vertices[i].color = {0, clr, 0,255};
-                vertices[i].position= {startLine.x,startLine.y};
-                //SDL_RenderDrawLine(renderer, startLine.x, startLine.y, endLine.x, endLine.y);
+                vertices[i].position= {prot.points[i].x,prot.points[i].y};
             }
-            SDL_RenderGeometry(renderer, NULL, vertices, 3, NULL, 0);
+            //draw triangle
+            //SDL_RenderGeometry(renderer, NULL, vertices, 3, NULL, 0);
+
+            //draw outlines
+
+            SDL_RenderDrawLine(renderer, vertices[0].position.x, vertices[0].position.y, vertices[1].position.x, vertices[1].position.y);
+            SDL_RenderDrawLine(renderer, vertices[1].position.x, vertices[1].position.y, vertices[2].position.x, vertices[2].position.y);
+            SDL_RenderDrawLine(renderer, vertices[2].position.x, vertices[2].position.y, vertices[0].position.x, vertices[0].position.y);
+
+
 
         }
-
-
 
 
     }
@@ -123,32 +184,27 @@ int renderer3D::getWindowSizeX() {
 }
 
 
-vec3D renderer3D::rotateX(vec3D point) {
-    vec3D returnPoint;
-    returnPoint.x = point.x;
-    returnPoint.y = cos(rotation.xRotation) * point.y - sin(rotation.xRotation) * point.z;
-    returnPoint.z = sin(rotation.xRotation) * point.y + cos(rotation.xRotation) * point.z;
-    return returnPoint;
+void renderer3D::rotateX(vec3D &point, vec3D &pointr) {
+    pointr.x = point.x;
+    pointr.y = cos(rotation.xRotation) * point.y - sin(rotation.xRotation) * point.z;
+    pointr.z = sin(rotation.xRotation) * point.y + cos(rotation.xRotation) * point.z;
 }
 
-vec3D renderer3D::rotateY(vec3D point) {
-    vec3D returnPoint;
-    returnPoint.x = cos(rotation.yRotation) * point.x + sin(rotation.yRotation) * point.z;
-    returnPoint.y = point.y;
-    returnPoint.z = -sin(rotation.yRotation) * point.x + cos(rotation.yRotation) * point.z;
-    return returnPoint;
+void renderer3D::rotateY(vec3D &point, vec3D &pointr) {
+
+    pointr.y = point.y;
+    pointr.x = cos(rotation.yRotation) * point.x + sin(rotation.yRotation) * point.z;
+    pointr.z = -sin(rotation.yRotation) * point.x + cos(rotation.yRotation) * point.z;
 }
 
-vec3D renderer3D::rotateZ(vec3D point) {
-    vec3D returnPoint;
-    returnPoint.x = cos(rotation.zRotation) * point.x - sin(rotation.zRotation) * point.y;
-    returnPoint.y = sin(rotation.zRotation) * point.x + cos(rotation.zRotation) * point.y;
-    returnPoint.z = point.z;
-    return returnPoint;
+void renderer3D::rotateZ(vec3D &point, vec3D &pointr) {
+    pointr.x = cos(rotation.zRotation) * point.x - sin(rotation.zRotation) * point.y;
+    pointr.y = sin(rotation.zRotation) * point.x + cos(rotation.zRotation) * point.y;
+    pointr.z = point.z;
 }
 
-vec2D renderer3D::projection(vec3D point) {
-    return vec2D{pos.x + (FOV * point.x) / (FOV + point.z) * scale, pos.y + (FOV * point.y) / (FOV + point.z) * scale};
+void renderer3D::projection(vec3D &point, vec2D &pointr) {
+    pointr = vec2D{pos.x + (FOV * point.x) / (FOV + point.z) * scale, pos.y + (FOV * point.y) / (FOV + point.z) * scale};
 }
 
 
