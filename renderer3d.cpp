@@ -68,13 +68,12 @@ void renderer3D::render() {
 
     //Auto Rotation
     rotation.xRotation += 1* DeltaTime;
-    //rotation.yRotation += 1*DeltaTime;
+    rotation.yRotation += 1*DeltaTime;
     rotation.zRotation += 1*DeltaTime;
 
     SDL_SetRenderDrawColor(renderer3D::renderer,255,255,255,SDL_ALPHA_OPAQUE);
     for (auto& poly : meshObject.polygons) {
-        polygon triTranslated, triRotatedx, triRotatedxy, triRotated;
-        triangle prot;
+        polygon triTranslated, triRotatedx, triRotatedxy, triRotated, triProjected;
 
         //rotate points
         for (int i = 0; i < 3; ++i) {
@@ -118,35 +117,49 @@ void renderer3D::render() {
         normal.x /= l; normal.y /= l; normal.z /= l;
 
         //dot product
-        /*if (normal.x *(triTranslated.points[0].x - vCamera.x) +
+        if (normal.x *(triTranslated.points[0].x - vCamera.x) +
             normal.y *(triTranslated.points[0].y - vCamera.y)+
-            normal.z *(triTranslated.points[0].z - vCamera.z) < 0.0f)*/ //doesn't work
-        if (normal.z < 0.0f)
+            normal.z *(triTranslated.points[0].z - vCamera.z) < 0.0f) //doesn't work
+        //if (normal.z < 0.0f)
         {
             //lighting
             vec3D lightDirection = {0.0f,0.0f,-1.0f};
             float le = sqrt(lightDirection.x*lightDirection.x + lightDirection.y*lightDirection.y + lightDirection.z*lightDirection.z);
             lightDirection.x /= le; lightDirection.y /= le; lightDirection.z /= le;
             float dp = normal.x * lightDirection.x + normal.y * lightDirection.y + normal.z * lightDirection.z;
-            //std::cout << dp << std::endl;
             Uint8 clr = ceil(fabsf((dp+1)/2) * 255);
 
-            SDL_Vertex vertices[3]; //triangle points quordinates
+
             //projection
+            MultiplyMatrixVector(triTranslated.points[0], triProjected.points[0], matProj);
+            MultiplyMatrixVector(triTranslated.points[1], triProjected.points[1], matProj);
+            MultiplyMatrixVector(triTranslated.points[2], triProjected.points[2], matProj);
+
+            triProjected.points[0].x += 1.0f; triProjected.points[0].y += 1.0f;
+            triProjected.points[1].x += 1.0f; triProjected.points[1].y += 1.0f;
+            triProjected.points[2].x += 1.0f; triProjected.points[2].y += 1.0f;
+            triProjected.points[0].x *= 0.5f * (float)WindowSizeX;
+            triProjected.points[0].y *= 0.5f * (float)WindowSizeY;
+            triProjected.points[1].x *= 0.5f * (float)WindowSizeX;
+            triProjected.points[1].y *= 0.5f * (float)WindowSizeY;
+            triProjected.points[2].x *= 0.5f * (float)WindowSizeX;
+            triProjected.points[2].y *= 0.5f * (float)WindowSizeY;
+
+            SDL_Vertex vertices[3]; //triangle points quordinates
+
+
             for (int i = 0; i < 3; ++i) {
-                projection(triTranslated.points[i], prot.points[i]);
                 vertices[i].color = {0, clr, clr,255};
-                vertices[i].position= {prot.points[i].x,prot.points[i].y};
+                vertices[i].position= {triProjected.points[i].x,triProjected.points[i].y};
             }
+
             //draw triangle
             SDL_RenderGeometry(renderer, NULL, vertices, 3, NULL, 0);
 
             //draw outlines
-
-
-            //SDL_RenderDrawLine(renderer, vertices[0].position.x, vertices[0].position.y, vertices[1].position.x, vertices[1].position.y);
-            //SDL_RenderDrawLine(renderer, vertices[1].position.x, vertices[1].position.y, vertices[2].position.x, vertices[2].position.y);
-            //SDL_RenderDrawLine(renderer, vertices[2].position.x, vertices[2].position.y, vertices[0].position.x, vertices[0].position.y);
+            //SDL_RenderDrawLine(renderer, triProjected.points[0].x, triProjected.points[0].y, triProjected.points[1].x, triProjected.points[1].y);
+            //SDL_RenderDrawLine(renderer, triProjected.points[1].x, triProjected.points[1].y, triProjected.points[2].x, triProjected.points[2].y);
+            //SDL_RenderDrawLine(renderer, triProjected.points[2].x, triProjected.points[2].y, triProjected.points[0].x, triProjected.points[0].y);
 
 
 
