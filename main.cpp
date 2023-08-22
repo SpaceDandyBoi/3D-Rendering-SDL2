@@ -17,23 +17,29 @@ polygon polycreator(vec3D Apoint, vec3D Bpoint, vec3D Cpoint){
 
 int main(int argc, char** argv) {
 
-    cube = {{{vec3D(-1.0f,-1.0f,-1.0f),vec3D(-1.0f,1.0f,-1.0f),vec3D(1.0f,1.0f,-1.0f)},
-             {vec3D(-1.0f,-1.0f,-1.0f),vec3D(1.0f,1.0f,-1.0f),vec3D(1.0f,-1.0f,-1.0f)},
+    cube = {{		{ 0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 0.0f },
+                     { 0.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 0.0f, 0.0f },
 
-             {vec3D(1.0f,-1.0f,-1.0f),vec3D(1.0f,1.0f,-1.0f),vec3D(1.0f,1.0f,1.0f)},
-             {vec3D(1.0f,-1.0f,-1.0f),vec3D(1.0f,1.0f,1.0f),vec3D(1.0f,-1.0f,1.0f)},
+                    // EAST
+                     { 1.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 1.0f, 1.0f },
+                     { 1.0f, 0.0f, 0.0f,    1.0f, 1.0f, 1.0f,    1.0f, 0.0f, 1.0f },
 
-             {vec3D(1.0f, -1.0f, 1.0f),vec3D(1.0f, 1.0f, 1.0f),vec3D(-1.0f, 1.0f, 1.0f)},
-             {vec3D(1.0f, -1.0f, 1.0f),vec3D(-1.0f, 1.0f, 1.0f),vec3D(-1.0f, -1.0f, 1.0f)},
+                    // NORTH
+                     { 1.0f, 0.0f, 1.0f,    1.0f, 1.0f, 1.0f,    0.0f, 1.0f, 1.0f },
+                     { 1.0f, 0.0f, 1.0f,    0.0f, 1.0f, 1.0f,    0.0f, 0.0f, 1.0f },
 
-             {vec3D( -1.0f, -1.0f, 1.0f),vec3D(-1.0f, 1.0f, 1.0f),vec3D(-1.0f, 1.0f, -1.0f)},
-             {vec3D(-1.0f, -1.0f, 1.0f),vec3D(-1.0f, 1.0f, -1.0f),vec3D(-1.0f, -1.0f, -1.0f)},
+                    // WEST
+                     { 0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 1.0f,    0.0f, 1.0f, 0.0f },
+                     { 0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f,    0.0f, 0.0f, 0.0f },
 
-             {vec3D(-1.0f, 1.0f, -1.0f),vec3D(-1.0f, 1.0f, 1.0f),vec3D(1.0f, 1.0f, 1.0f)},
-             {vec3D(-1.0f, 1.0f, -1.0f),vec3D(1.0f, 1.0f, 1.0f),vec3D(1.0f, 1.0f, -1.0f)},
+                    // TOP
+                     { 0.0f, 1.0f, 0.0f,    0.0f, 1.0f, 1.0f,    1.0f, 1.0f, 1.0f },
+                     { 0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 1.0f,    1.0f, 1.0f, 0.0f },
 
-             {vec3D(1.0f, -1.0f, 1.0f),vec3D(-1.0f, -1.0f, 1.0f),vec3D(-1.0f, -1.0f, -1.0f)},
-             {vec3D(1.0f, -1.0f, 1.0f),vec3D(-1.0f, -1.0f, -1.0f),vec3D(1.0f, -1.0f, -1.0f)}}};
+                    // BOTTOM
+                     { 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f },
+                     { 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f },
+                     }};
 
     //creating sdl window and renderer
     SDL_Window* window;

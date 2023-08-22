@@ -66,9 +66,10 @@ void renderer3D::render() {
     matRotY.m[3][3] = 1;
 
 
-
-    //rotation.xRotation += 1* DeltaTime;
-    //rotation.zRotation += 1*DeltaTime;
+    //Auto Rotation
+    rotation.xRotation += 1* DeltaTime;
+    rotation.yRotation += 1*DeltaTime;
+    rotation.zRotation += 1*DeltaTime;
 
     SDL_SetRenderDrawColor(renderer3D::renderer,255,255,255,SDL_ALPHA_OPAQUE);
     for (auto& poly : meshObject.polygons) {
@@ -89,9 +90,9 @@ void renderer3D::render() {
 
         // Offset into the screen
         triTranslated = triRotated;
-        triTranslated.points[0].z = triRotated.points[0].z;
-        triTranslated.points[1].z = triRotated.points[1].z;
-        triTranslated.points[2].z = triRotated.points[2].z;
+        triTranslated.points[0].z = triRotated.points[0].z + 3.0f;
+        triTranslated.points[1].z = triRotated.points[1].z + 3.0f;
+        triTranslated.points[2].z = triRotated.points[2].z + 3.0f;
 
 
         // Use Cross-Product to get surface normal
@@ -107,17 +108,14 @@ void renderer3D::render() {
         normal.x = edge1.y * edge2.z - edge1.z * edge2.y;
         normal.y = edge1.z * edge2.x - edge1.x * edge2.z;
         normal.z = edge1.x * edge2.y - edge1.y * edge2.x;
-        //std::cout<< normal.x*normal.x << std::endl;
 
         float l = sqrtf(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
         normal.x /= l; normal.y /= l; normal.z /= l;
-        vCamera={0.0f,0.0f,-2.0f};
 
-
-        /*if (normal.x *(triTranslated.points[0].x - vCamera.x) +
+        if (normal.x *(triTranslated.points[0].x - vCamera.x) +
             normal.y *(triTranslated.points[0].y - vCamera.y)+
-            normal.z *(triTranslated.points[0].z - vCamera.z) < 0.0f)*/ //doesn't work
-        if (normal.z < 0.0f)
+            normal.z *(triTranslated.points[0].z - vCamera.z) < 0.0f) //doesn't work
+        //if (normal.z < 0.0f)
         {
             //lighting
             vec3D lightDirection = {0.0f,0.0f,-1.0f};
@@ -130,17 +128,18 @@ void renderer3D::render() {
             //projection
             for (int i = 0; i < 3; ++i) {
                 projection(triTranslated.points[i], prot.points[i]);
-                vertices[i].color = {0, clr, 0,255};
+                vertices[i].color = {clr, clr, clr,255};
                 vertices[i].position= {prot.points[i].x,prot.points[i].y};
             }
             //draw triangle
-            //SDL_RenderGeometry(renderer, NULL, vertices, 3, NULL, 0);
+            SDL_RenderGeometry(renderer, NULL, vertices, 3, NULL, 0);
 
             //draw outlines
 
-            SDL_RenderDrawLine(renderer, vertices[0].position.x, vertices[0].position.y, vertices[1].position.x, vertices[1].position.y);
-            SDL_RenderDrawLine(renderer, vertices[1].position.x, vertices[1].position.y, vertices[2].position.x, vertices[2].position.y);
-            SDL_RenderDrawLine(renderer, vertices[2].position.x, vertices[2].position.y, vertices[0].position.x, vertices[0].position.y);
+
+            //SDL_RenderDrawLine(renderer, vertices[0].position.x, vertices[0].position.y, vertices[1].position.x, vertices[1].position.y);
+            //SDL_RenderDrawLine(renderer, vertices[1].position.x, vertices[1].position.y, vertices[2].position.x, vertices[2].position.y);
+            //SDL_RenderDrawLine(renderer, vertices[2].position.x, vertices[2].position.y, vertices[0].position.x, vertices[0].position.y);
 
 
 

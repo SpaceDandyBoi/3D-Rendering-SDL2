@@ -67,7 +67,7 @@ private:
 
     Rotation rotation = {0,0,0};
     float FOV = 100.0f;
-    float scale = 30.0f;
+    float scale = 50.0f;
     int WindowSizeX;
     int WindowSizeY;
     float DeltaTime = 0.0f;
@@ -78,7 +78,7 @@ private:
     vec2D pos;
 
     mesh meshObject;
-    vec3D vCamera;
+    vec3D vCamera ={0.0f,0.0f,0.0f};
     mat4x4 matProj;
 
     void MultiplyMatrixVector(vec3D &i, vec3D &o, mat4x4 &m)
