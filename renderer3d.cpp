@@ -34,7 +34,6 @@ renderer3D::renderer3D(mesh P_meshObject, SDL_Window* window, SDL_Renderer* p_re
 
 
 //=================================================================================
-
 void renderer3D::render() {
     auto time1 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration(0);
@@ -67,9 +66,12 @@ void renderer3D::render() {
 
 
     //Auto Rotation
-    rotation.xRotation += 1* DeltaTime;
-    rotation.yRotation += 1*DeltaTime;
-    rotation.zRotation += 1*DeltaTime;
+    //rotation.xRotation += 1* DeltaTime;
+    //rotation.yRotation += 1* DeltaTime;
+    //rotation.zRotation += 1* DeltaTime;
+
+    //polygons we want to draw
+    std::vector<polygon> triToRas;
 
     SDL_SetRenderDrawColor(renderer3D::renderer,255,255,255,SDL_ALPHA_OPAQUE);
     for (auto& poly : meshObject.polygons) {
@@ -89,9 +91,9 @@ void renderer3D::render() {
 
         // Offset into the screen
         triTranslated = triRotated;
-        triTranslated.points[0].z = triRotated.points[0].z + 3.0f;
-        triTranslated.points[1].z = triRotated.points[1].z + 3.0f;
-        triTranslated.points[2].z = triRotated.points[2].z + 3.0f;
+        triTranslated.points[0].z = triRotated.points[0].z + 12.0f;
+        triTranslated.points[1].z = triRotated.points[1].z + 12.0f;
+        triTranslated.points[2].z = triRotated.points[2].z + 12.0f;
 
 
         // Use Cross-Product to get surface normal
@@ -145,27 +147,39 @@ void renderer3D::render() {
             triProjected.points[2].x *= 0.5f * (float)WindowSizeX;
             triProjected.points[2].y *= 0.5f * (float)WindowSizeY;
 
-            SDL_Vertex vertices[3]; //triangle points quordinates
+            //give color
+            triProjected.color = {0, clr, clr,255};
 
-
-            for (int i = 0; i < 3; ++i) {
-                vertices[i].color = {0, clr, clr,255};
-                vertices[i].position= {triProjected.points[i].x,triProjected.points[i].y};
-            }
-
-            //draw triangle
-            SDL_RenderGeometry(renderer, NULL, vertices, 3, NULL, 0);
-
-            //draw outlines
-            //SDL_RenderDrawLine(renderer, triProjected.points[0].x, triProjected.points[0].y, triProjected.points[1].x, triProjected.points[1].y);
-            //SDL_RenderDrawLine(renderer, triProjected.points[1].x, triProjected.points[1].y, triProjected.points[2].x, triProjected.points[2].y);
-            //SDL_RenderDrawLine(renderer, triProjected.points[2].x, triProjected.points[2].y, triProjected.points[0].x, triProjected.points[0].y);
-
-
+            //save triangle here
+            triToRas.push_back(triProjected);
 
         }
 
 
+    }
+
+    //sort polygons from back to front
+    std::sort(triToRas.begin(),triToRas.end(), [](polygon &t1, polygon &t2)
+    {
+        float z1 = (t1.points[0].z + t1.points[1].z + t1.points[2].z) / 3.0f;
+        float z2 = (t2.points[0].z + t2.points[1].z + t2.points[2].z) / 3.0f;
+        return z1 > z2;
+    });
+
+    //draw
+    for (auto &triToDraw : triToRas) {
+        SDL_Vertex vertices[3];
+        for (int i = 0; i < 3; ++i) {
+            vertices[i].color = triToDraw.color;
+            vertices[i].position= {triToDraw.points[i].x,triToDraw.points[i].y};
+        }
+        //draw triangle
+        SDL_RenderGeometry(renderer, NULL, vertices, 3, NULL, 0);
+
+        //draw outlines
+        //SDL_RenderDrawLine(renderer, triProjected.points[0].x, triProjected.points[0].y, triProjected.points[1].x, triProjected.points[1].y);
+        //SDL_RenderDrawLine(renderer, triProjected.points[1].x, triProjected.points[1].y, triProjected.points[2].x, triProjected.points[2].y);
+        //SDL_RenderDrawLine(renderer, triProjected.points[2].x, triProjected.points[2].y, triProjected.points[0].x, triProjected.points[0].y);
     }
 
     SDL_RenderPresent(renderer);

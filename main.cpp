@@ -16,7 +16,7 @@ polygon polycreator(vec3D Apoint, vec3D Bpoint, vec3D Cpoint){
  */
 
 int main(int argc, char** argv) {
-
+/*
     cube = {{		{ 0.0f, 0.0f, 0.0f,    0.0f, 1.0f, 0.0f,    1.0f, 1.0f, 0.0f },
                      { 0.0f, 0.0f, 0.0f,    1.0f, 1.0f, 0.0f,    1.0f, 0.0f, 0.0f },
 
@@ -40,7 +40,9 @@ int main(int argc, char** argv) {
                      { 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f },
                      { 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f,    1.0f, 0.0f, 0.0f },
                      }};
+*/
 
+    cube.LoadFromObjectFile("filename.obj");
     //creating sdl window and renderer
     SDL_Window* window;
     SDL_Renderer* renderer;
