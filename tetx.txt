@@ -1,0 +1,258 @@
+//
+// Created by Dandy on 7/26/2023.
+//
+
+#include "renderer3d.h"
+
+#include <utility>
+#include <unistd.h>
+#define EPS 1e-9
+
+renderer3D::renderer3D(mesh P_meshObject, SDL_Window* window, SDL_Renderer* p_renderer){
+    //SDL_GetWindowSize(window, &WindowSizeX, &WindowSizeY);
+    meshObject = std::move(P_meshObject);
+    renderer = p_renderer;
+    SDL_RenderGetLogicalSize(renderer, &WindowSizeX, &WindowSizeY);
+    pos = vec2D(WindowSizeX/2,WindowSizeY/2);
+    rotation = {0,0,0};
+
+    matProj = Matrix_MakeProjection(90.0f, (float)WindowSizeY / (float)WindowSizeX, 0.0f, 1000.0f);
+
+}
+
+
+//=================================================================================
+void renderer3D::render() {
+    auto time1 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration(0);
+    SDL_SetRenderDrawColor(renderer,0,0,0,SDL_ALPHA_OPAQUE);
+    SDL_RenderClear(renderer);
+
+    //===========================ROTATIONS===============================
+    //Auto Rotation
+    //rotation.xRotation += 1* DeltaTime;
+    //rotation.yRotation += 1* DeltaTime;
+    //rotation.zRotation += 1* DeltaTime;
+
+    mat4x4 matRotZ, matRotX, matRotY;
+
+
+    matRotX = Matrix_MakeRotationX(rotation.xRotation);
+    matRotZ = Matrix_MakeRotationZ(rotation.zRotation);
+    matRotY = Matrix_MakeRotationY(rotation.yRotation);
+    //====================================================================
+
+
+    //===========================TRANSLATION==============================
+    mat4x4 matTrans;
+    matTrans = Matrix_MakeTranslation(0.0f, 0.0f, 5.0f);
+    //====================================================================
+
+    //===========================transformation============================
+    mat4x4 matWorld;
+    matWorld = Matrix_MakeIdentity();
+    matWorld = Matrix_MultiplyMatrix(matRotZ, matRotX);
+    matWorld = Matrix_MultiplyMatrix(matWorld, matRotY);
+    matWorld = Matrix_MultiplyMatrix(matWorld, matTrans);
+
+    vLookDir = {0,0,1};
+    vec3D vUp = {0,1,0};
+    vec3D vTarget = Vector_Add(vCamera, vLookDir);
+
+    mat4x4 matCamera = Matrix_PointAt(vCamera,vTarget,vUp);
+
+    mat4x4 matView = Matrix_QuickInverse(matCamera);
+    //====================================================================
+
+
+
+    //polygons we want to draw
+    std::vector<polygon> triToRas;
+
+    for (auto& poly : meshObject.polygons) {
+
+        polygon triProjected, triTransformed, triViewed;
+
+        triTransformed.points[0] = Matrix_MultiplyVector(matWorld, poly.points[0]);
+        triTransformed.points[1] = Matrix_MultiplyVector(matWorld, poly.points[1]);
+        triTransformed.points[2] = Matrix_MultiplyVector(matWorld, poly.points[2]);
+
+
+        // Calculate triangle Normal
+        vec3D normal, line1, line2;
+
+        // Get lines either side of triangle
+        line1 = Vector_Sub(triTransformed.points[1], triTransformed.points[0]);
+        line2 = Vector_Sub(triTransformed.points[2], triTransformed.points[0]);
+
+        // Take cross product of lines to get normal to triangle surface
+        normal = Vector_CrossProduct(line1, line2);
+
+        // You normally need to normalise a normal!
+        normal = Vector_Normalise(normal);
+
+        // Get Ray from triangle to camera
+        vec3D vCameraRay = Vector_Sub(triTransformed.points[0], vCamera);
+
+        if (Vector_DotProduct(normal, vCameraRay) < 0.0f)
+        {
+            //lighting
+            vec3D lightDirection = {0.0f,1.0f,-1.0f};
+            lightDirection = Vector_Normalise(lightDirection);
+            float dp = normal.x * lightDirection.x + normal.y * lightDirection.y + normal.z * lightDirection.z;
+            Uint8 clr = ceil(fabsf((dp+1)/2) * 255);
+
+            triViewed.points[0] = Matrix_MultiplyVector(matView, triTransformed.points[0]);
+            triViewed.points[1] = Matrix_MultiplyVector(matView, triTransformed.points[1]);
+            triViewed.points[2] = Matrix_MultiplyVector(matView, triTransformed.points[2]);
+
+            //projection triangle from 3d to 2d
+            triProjected.points[0] = Matrix_MultiplyVector(matProj, triViewed.points[0]);
+            triProjected.points[1] = Matrix_MultiplyVector(matProj, triViewed.points[1]);
+            triProjected.points[2] = Matrix_MultiplyVector(matProj, triViewed.points[2]);
+            triProjected.color = {0, clr, clr,255};
+
+            //offset triangles into visible normalised space
+            vec3D vOffsetView = {1,1,0};
+            triProjected.points[0] = Vector_Add(triProjected.points[0], vOffsetView);
+            triProjected.points[1] = Vector_Add(triProjected.points[1], vOffsetView);
+            triProjected.points[2] = Vector_Add(triProjected.points[2], vOffsetView);
+            triProjected.points[0].x *= 0.5f * (float)WindowSizeX;
+            triProjected.points[0].y *= 0.5f * (float)WindowSizeY;
+            triProjected.points[1].x *= 0.5f * (float)WindowSizeX;
+            triProjected.points[1].y *= 0.5f * (float)WindowSizeY;
+            triProjected.points[2].x *= 0.5f * (float)WindowSizeX;
+            triProjected.points[2].y *= 0.5f * (float)WindowSizeY;
+
+            //save triangle here
+            triToRas.push_back(triProjected);
+
+        }
+
+
+    }
+
+    //sort polygons from back to front
+    std::sort(triToRas.begin(),triToRas.end(), [](polygon &t1, polygon &t2)
+    {
+        float z1 = (t1.points[0].z + t1.points[1].z + t1.points[2].z) / 3.0f;
+        float z2 = (t2.points[0].z + t2.points[1].z + t2.points[2].z) / 3.0f;
+        return z1 > z2;
+    });
+
+    std::cout << triToRas[0].points[0].z << std::endl;
+
+    //draw
+    for (auto &triToDraw : triToRas) {
+        SDL_SetRenderDrawColor(renderer3D::renderer,255,255,255,SDL_ALPHA_OPAQUE);
+        SDL_Vertex vertices[3];
+        for (int i = 0; i < 3; ++i) {
+            vertices[i].color = triToDraw.color;
+            vertices[i].position= {triToDraw.points[i].x,triToDraw.points[i].y};
+        }
+        //draw triangle
+        SDL_RenderGeometry(renderer, NULL, vertices, 3, NULL, 0);
+
+        //draw outlines
+        /*
+        SDL_RenderDrawLine(renderer, triToDraw.points[0].x, triToDraw.points[0].y, triToDraw.points[1].x, triToDraw.points[1].y);
+        SDL_RenderDrawLine(renderer, triToDraw.points[1].x, triToDraw.points[1].y, triToDraw.points[2].x, triToDraw.points[2].y);
+        SDL_RenderDrawLine(renderer, triToDraw.points[2].x, triToDraw.points[2].y, triToDraw.points[0].x, triToDraw.points[0].y);
+         */
+    }
+
+    SDL_RenderPresent(renderer);
+    auto time2 = std::chrono::high_resolution_clock::now();
+    duration = time2 - time1;
+    DeltaTime = duration.count();
+    time1 = time2;
+}
+
+float renderer3D::getDeltaTime() const {
+    return DeltaTime;
+}
+
+void renderer3D::setDeltaTime(float deltaTime) {
+    DeltaTime = deltaTime;
+}
+
+
+void renderer3D::setWindowSizeX(int windowSizeX) {
+    WindowSizeX = windowSizeX;
+}
+
+void renderer3D::setWindowSizeY(int windowSizeY) {
+    WindowSizeY = windowSizeY;
+}
+
+int renderer3D::getWindowSizeY() {
+    return 0;
+}
+
+int renderer3D::getWindowSizeX() {
+    return 0;
+}
+
+void renderer3D::rotateX(vec3D &point, vec3D &pointr) {
+    pointr.x = point.x;
+    pointr.y = cos(rotation.xRotation) * point.y - sin(rotation.xRotation) * point.z;
+    pointr.z = sin(rotation.xRotation) * point.y + cos(rotation.xRotation) * point.z;
+}
+
+void renderer3D::rotateY(vec3D &point, vec3D &pointr) {
+
+    pointr.y = point.y;
+    pointr.x = cos(rotation.yRotation) * point.x + sin(rotation.yRotation) * point.z;
+    pointr.z = -sin(rotation.yRotation) * point.x + cos(rotation.yRotation) * point.z;
+}
+
+void renderer3D::rotateZ(vec3D &point, vec3D &pointr) {
+    pointr.x = cos(rotation.zRotation) * point.x - sin(rotation.zRotation) * point.y;
+    pointr.y = sin(rotation.zRotation) * point.x + cos(rotation.zRotation) * point.y;
+    pointr.z = point.z;
+}
+
+void renderer3D::projection(vec3D &point, vec2D &pointr) {
+    pointr = vec2D{pos.x + (FOV * point.x) / (FOV + point.z) * scale, pos.y + (FOV * point.y) / (FOV + point.z) * scale};
+}
+
+
+float renderer3D::getFov() const {
+    return FOV;
+}
+
+void renderer3D::setFov(float fov) {
+    FOV = fov;
+}
+
+float renderer3D::getScale() const {
+    return scale;
+}
+
+void renderer3D::setScale(float scale) {
+    renderer3D::scale = scale;
+}
+
+const vec2D &renderer3D::getPos() const {
+    return pos;
+}
+
+void renderer3D::setPos(const vec2D &pos) {
+    renderer3D::pos = pos;
+}
+
+const Rotation &renderer3D::getRotation() const {
+    return rotation;
+}
+
+void renderer3D::setRotation(const Rotation &rotation) {
+    renderer3D::rotation = rotation;
+}
+
+const vec3D &renderer3D::getVCamera() const {
+    return vCamera;
+}
+
+void renderer3D::setVCamera(const vec3D &vCamera) {
+    renderer3D::vCamera = vCamera;
+}
