@@ -38,19 +38,21 @@ void renderer3D::render() {
 
 
     matRotX = Matrix_MakeRotationX(rotation.xRotation);
+    matRotY = Matrix_MakeRotationY(rotation.yRotation);
     matRotZ = Matrix_MakeRotationZ(rotation.zRotation);
     //====================================================================
 
 
     //===========================TRANSLATION==============================
     mat4x4 matTrans;
-    matTrans = Matrix_MakeTranslation(0.0f, 0.0f, 5.0f);
+    matTrans = Matrix_MakeTranslation(0.0f, 0.0f, 18.0f);
     //====================================================================
 
     //===========================transformation============================
     mat4x4 matWorld;
     matWorld = Matrix_MakeIdentity();
     matWorld = Matrix_MultiplyMatrix(matRotZ, matRotX);
+    matWorld = Matrix_MultiplyMatrix(matWorld, matRotY);
     matWorld = Matrix_MultiplyMatrix(matWorld, matTrans);
 
     vLookDir = {0,0,1};
@@ -95,7 +97,7 @@ void renderer3D::render() {
         if (Vector_DotProduct(normal, vCameraRay) < 0.0f)
         {
             //lighting
-            vec3D lightDirection = {0.0f,1.0f,-1.0f};
+            vec3D lightDirection = {0.0f,0.0f,-1.0f};
             lightDirection = Vector_Normalise(lightDirection);
             float dp = normal.x * lightDirection.x + normal.y * lightDirection.y + normal.z * lightDirection.z;
             Uint8 clr = ceil(fabsf((dp+1)/2) * 255);
@@ -109,7 +111,11 @@ void renderer3D::render() {
             triProjected.points[1] = Matrix_MultiplyVector(matProj, triViewed.points[1]);
             triProjected.points[2] = Matrix_MultiplyVector(matProj, triViewed.points[2]);
             triProjected.color = {0, clr, clr,255};
-            //std::cout << triProjected.points[0].x << " " << triProjected.points[0].y << " " << triProjected.points[0].z << " "<< std::endl;
+
+
+            triProjected.points[0] = Vector_Div(triProjected.points[0], triProjected.points[0].w);
+            triProjected.points[1] = Vector_Div(triProjected.points[1], triProjected.points[1].w);
+            triProjected.points[2] = Vector_Div(triProjected.points[2], triProjected.points[2].w);
 
             //offset triangles into visible normalised space
             vec3D vOffsetView = {1,1,0};
