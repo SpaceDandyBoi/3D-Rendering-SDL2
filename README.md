@@ -1,4 +1,4 @@
-this project uses sdl2 to create 3d rendering
+this project uses sdl2 to create 3d renders
 please download the required libraries to use it
 
 
